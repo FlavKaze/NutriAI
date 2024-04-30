@@ -2,6 +2,7 @@ from dataclasses import dataclass, asdict, field
 import re
 from typing import List
 from datetime import datetime
+import pytz
 from collections import defaultdict
 from  word2number import w2n
 from contextlib import suppress
@@ -11,6 +12,7 @@ import dacite
 from fuzzywuzzy import process, fuzz
 
 nltk.download('stopwords')
+fuso_horario = pytz.timezone('America/Sao_Paulo')
 
 stopwords = nltk.corpus.stopwords.words('portuguese')
 table_scale = 100
@@ -31,6 +33,9 @@ unit_words = {
     'unidade': 1,
     'unidades': 1
 }
+
+def get_date():
+    return datetime.now(fuso_horario).strftime('%Y-%m-%d')
 
 @dataclass
 class Food():
@@ -135,7 +140,7 @@ class User():
         return dacite.from_dict(data_class=User, data=data)
         
     def create_diet(self,):
-        date = datetime.now().strftime('%Y-%m-%d')
+        date = get_date()
         diet = DailyDiet(date=date, foods=[], kcal=0, protein=0, carbs=0)
         if not self.all_diet:
             self.all_diet = []
@@ -145,12 +150,12 @@ class User():
         return self.all_diet[-1]
     
     def get_today_diet(self):
-        return next((diet for diet in self.all_diet if diet.date == datetime.now().strftime('%Y-%m-%d')), None)
+        return next((diet for diet in self.all_diet if diet.date == get_date()), None)
     
     def update_last_diet(self, foods: List[Food]):
         if not foods:
             return
-        if not self.all_diet or self.all_diet[-1].date != datetime.now().strftime('%Y-%m-%d'):
+        if not self.all_diet or self.all_diet[-1].date != get_date():
             self.create_diet()
         self.all_diet[-1].foods.extend(foods)
         for food in foods:
