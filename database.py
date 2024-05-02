@@ -1,8 +1,8 @@
 import json
 import redis
 
-def get_redis_connection():
-    return redis.Redis(host='localhost', port=6379, decode_responses=True)
+def get_redis_connection(db=0):
+    return redis.Redis(host='localhost', port=6379, decode_responses=True, db=db)
 
 r = get_redis_connection()
 

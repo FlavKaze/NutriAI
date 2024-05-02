@@ -1,4 +1,4 @@
-from telegram import ReplyKeyboardMarkup, Update
+from telegram import ReplyKeyboardMarkup, Update, ReplyKeyboardRemove
 from telegram.ext import Updater, CommandHandler, MessageHandler, filters, ConversationHandler, CallbackContext
 
 from user_structure import calcular_calorias_diarias, calcular_macronutrientes, User
@@ -106,7 +106,7 @@ async def nivel_atividade(update: Update, context: CallbackContext):
 # Função para lidar com o objetivo
 async def objetivo(update: Update, context: CallbackContext):
     context.user_data['objetivo'] = update.message.text
-    await update.message.reply_text('Vamos calcular suas necessidades diárias de calorias e macronutrientes.')
+    await update.message.reply_text('Vamos calcular suas necessidades diárias de calorias e macronutrientes.', reply_markup=ReplyKeyboardRemove())
     await update.message.reply_text(calculate_values(update.message.from_user.id, context.user_data))
     await update.message.reply_text('Agora você pode adicionar alimentos à sua dieta mandando mensagens de voz, ou texto. ex: "100g banana, 250g maçã"')
     return ConversationHandler.END
