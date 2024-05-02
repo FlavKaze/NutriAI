@@ -3,7 +3,7 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, filters, Conve
 
 from user_structure import calcular_calorias_diarias, calcular_macronutrientes, User
 from database import set_user_session, get_user_session, del_user_session
-
+from project_logger import log_message
 
 # Definindo os estados da conversa
 (NOME, ATUALIZAR, PESO, ALTURA, IDADE, SEXO, NIVEL_ATIVIDADE, OBJETIVO, CALCULAR) = range(9)
@@ -45,6 +45,7 @@ def calculate_values(user_id, data):
 # Função para iniciar a conversa
 async def start(update: Update, context: CallbackContext):
     user_id = update.message.from_user.id
+    log_message(update, response="Iniciando cadastro", method="start")
 
     if get_user_session(user_id):
         await update.message.reply_text("Usuário já cadastrado!")
@@ -57,6 +58,7 @@ async def start(update: Update, context: CallbackContext):
     return NOME
 
 async def atualizar(update: Update, context: CallbackContext):
+    log_message(update, response="Atualizando cadastro", method="atualizar")
     if update.message.text.lower() == 'sim':
         await update.message.reply_text('Qual é o seu nome?')
         return NOME
@@ -66,24 +68,27 @@ async def atualizar(update: Update, context: CallbackContext):
 
 async def nome(update: Update, context: CallbackContext):
     context.user_data['nome'] = update.message.text
+    log_message(update, response="Nome cadastrado", method="nome")
     await update.message.reply_text('Olá! Qual é o seu peso em kg?')
     return PESO
 
 # Função para lidar com o peso
 async def peso(update: Update, context: CallbackContext):
-    user = update.message.from_user
+    log_message(update, response="Peso cadastrado", method="peso")
     context.user_data['peso'] = float(update.message.text)
     await update.message.reply_text('Qual é a sua altura em cm?')
     return ALTURA
 
 # Função para lidar com a altura
 async def altura(update: Update, context: CallbackContext):
+    log_message(update, response="Altura cadastrada", method="altura")
     context.user_data['altura'] = float(update.message.text)
     await update.message.reply_text('Qual é a sua idade?')
     return IDADE
 
 # Função para lidar com a idade
 async def idade(update: Update, context: CallbackContext):
+    log_message(update, response="Idade cadastrada", method="idade")
     context.user_data['idade'] = int(update.message.text)
     reply_keyboard = [['Masculino', 'Feminino']]
     await update.message.reply_text('Qual é o seu sexo?', reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
@@ -91,6 +96,7 @@ async def idade(update: Update, context: CallbackContext):
 
 # Função para lidar com o sexo
 async def sexo(update: Update, context: CallbackContext):
+    log_message(update, response="Sexo cadastrado", method="sexo")
     context.user_data['sexo'] = update.message.text
     reply_keyboard = [['1', '2', '3', '4', '5']]
     await update.message.reply_text('De 1 a 5 qual é seu Nivel de atividade onde 0 é sedentário e 5 é muito ativo?', reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
@@ -98,6 +104,7 @@ async def sexo(update: Update, context: CallbackContext):
 
 # Função para lidar com o nível de atividade
 async def nivel_atividade(update: Update, context: CallbackContext):
+    log_message(update, response="Nível de atividade cadastrado", method="nivel_atividade")
     context.user_data['nivel_atividade'] = update.message.text
     reply_keyboard = [['Perder peso', 'Manter peso', 'Ganhar peso']]
     await update.message.reply_text('Qual é o seu objetivo com a dieta?', reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True))
@@ -105,6 +112,7 @@ async def nivel_atividade(update: Update, context: CallbackContext):
 
 # Função para lidar com o objetivo
 async def objetivo(update: Update, context: CallbackContext):
+    log_message(update, response="Objetivo cadastrado", method="objetivo")
     context.user_data['objetivo'] = update.message.text
     await update.message.reply_text('Vamos calcular suas necessidades diárias de calorias e macronutrientes.', reply_markup=ReplyKeyboardRemove())
     await update.message.reply_text(calculate_values(update.message.from_user.id, context.user_data))

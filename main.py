@@ -8,16 +8,19 @@ from io import BytesIO
 import requests
 
 from user_structure import User
-from database import get_user_session, get_redis_connection
+from database import get_user_session
 from user_register import make_register
 from client_output import add_food, transcribe_audio, delete_last_food, generate_gif
+from project_logger import log_message
 
-
-
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
+# Enable logging
+logging.basicConfig(filename="logs.log",
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
+# set higher logging level for httpx to avoid all GET and POST requests being logged
+logging.getLogger("httpx").setLevel(logging.INFO)
+
+logger = logging.getLogger(__name__)
 
 commands = {
     "/register": "Registra um novo usuário",
@@ -25,25 +28,16 @@ commands = {
     "/today": "mostra a dieta de hoje.",
 }
 
-redis_connection = get_redis_connection(db=15)
-
-
-async def log_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.message.from_user.id
-    username = get_user_session(user_id).get('name', 'Unknown')
-    message = update.effective_message.text
-    log = {'username': username, 'message': message}
-    redis_connection.rpush('logs', dumps(log))
-    
-
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text_to_send = "Olá! Bem vindo ao seu assistente de dieta! Para começar, registre-se com o comando /register"
+    log_message(update, text_to_send, "start")
     await context.bot.send_message(chat_id=update.effective_chat.id, text=text_to_send)
     await context.bot.send_message(chat_id=update.effective_chat.id, text="Para ver os comandos disponíveis, use /help")
 
 
 async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    log_message(update, "Help command.", "help")
     text_to_send = "Comandos disponíveis:\n"
     text_to_send += '\n'.join([f"{command}: {description}" for command, description in commands.items()])
     text_to_send += "\n\nPara adicionar alimentos à sua dieta, mande mensagens de voz ou texto. ex: '100g banana, 250g maçã'"
@@ -52,6 +46,7 @@ async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    log_message(update, "Unknown command.", "unknown")
     await context.bot.send_message(chat_id=update.effective_chat.id, text="Sorry, I didn't understand that command.")
 
 
@@ -59,18 +54,21 @@ async def register_food(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_text = update.message.text
     user_id = update.message.from_user.id
     text_to_send = add_food(user_text, user_id)
+    log_message(update, text_to_send, "register_food")
     await context.bot.send_message(chat_id=update.effective_chat.id, text=text_to_send, reply_markup=ReplyKeyboardRemove())
 
 
 async def delete_food(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
     text_to_send = delete_last_food(user_id)
+    log_message(update, text_to_send , "delete_food")
     await context.bot.send_message(chat_id=update.effective_chat.id, text=text_to_send)
 
 
 async def get_diet(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
-
+    log_message(update, "Getting today's diet.", "get_diet")
+    
     if get_user_session(user_id):
         user = User.from_dict(get_user_session(user_id))
         last_diet = user.get_today_diet()
@@ -97,6 +95,8 @@ async def get_voice(update: Update, context: CallbackContext):
     bio = BytesIO(downloaded_file)
     user_text = transcribe_audio(bio)
     text_to_send = add_food(user_text, user_id)
+    log_message(update, text_to_send, "voice", context=user_text)
+
     await context.bot.send_message(chat_id=update.effective_chat.id, text=text_to_send)
     
 
@@ -112,7 +112,7 @@ if __name__ == '__main__':
     get_diet_handler = CommandHandler('today', get_diet)
     unknown_handler = MessageHandler(filters.COMMAND, unknown)
     # add message handler without blocks others handlers
-    message_handler = MessageHandler(filters.TEXT & (~filters.COMMAND), log_message, block=False)
+    # message_handler = MessageHandler(filters.TEXT & (~filters.COMMAND), log_message, block=False)
     voice_handler = MessageHandler(filters.VOICE, get_voice)
     register_handler = make_register()
     
