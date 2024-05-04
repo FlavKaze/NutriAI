@@ -12,7 +12,6 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from llm_model_inference import LLMInference
-from bson import json_util
 
 df = pd.read_csv("Tacotable.csv")
 llm_model = LLMInference()
