@@ -1,0 +1,6 @@
+import os
+
+
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+MODEL_TEMPERATURE = 0

@@ -11,8 +11,59 @@ import matplotlib.animation as animation
 from PIL import Image
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+from llm_model_inference import LLMInference
+from bson import json_util
 
 df = pd.read_csv("Tacotable.csv")
+llm_model = LLMInference()
+
+def send_image_to_llm(image: Image) -> str:
+    """Send the image to the LLM model."""
+    text = "Me diga todos os alimentos que estão na imagem."
+    return llm_model.generate_content_vision(text, image)
+
+
+def user_interaction_for_add_quantity(text):
+    """Add the quantity to the text."""
+    text = text.replace("\n", ", 100g ")
+    return "100g " + text
+    
+
+def normalize_llm_text(text: str) -> str:
+    """Normalize the text from the LLM model."""
+    text = "".join([w for w in text if w.isalpha() or w in [" ", "\n"]]).strip()
+    return text
+
+
+def add_food_from_image(image: BytesIO, user_id):
+    """Add food from image."""
+    if get_user_session(user_id):
+        user = User.from_dict(get_user_session(user_id))
+    else:
+        text = "Usuário não encontrado! Por favor, registre-se com o comando /register."
+        return text
+    
+    food_text = send_image_to_llm(Image.open(image))
+    try:
+        food_text = normalize_llm_text(food_text)
+        food_text = user_interaction_for_add_quantity(food_text)
+        
+        foods = create_food_from_text(text=food_text, df=df)
+        if not foods:
+            text = "Alimento não encontrado!"
+            return text
+        user.update_last_diet(foods)
+        set_user_session(user_id, user.to_dict())
+        food_str = '\n'.join([str(food) for food in foods])
+        text_to_send = f"Alimentos adicionados com sucesso! \n\n {food_str}"
+        return text_to_send
+    
+    except Exception as e:
+        print(e)
+        
+    return "Alimento não encontrado!"
+    
+
 
 def add_food(user_text, user_id):
     if get_user_session(user_id):
@@ -149,6 +200,4 @@ def generate_gif(user: User):
     
     
 if __name__ == "__main__":
-    a = generate_gif(1, ['kcal', 'protain', 'carbs', 'fat', 'fiber'], [100, 100, 100, 100, 100], [32, 45, 44, 78, 69])
-    print(a)
-
+    add_food_from_image(Image.open("/home/flaviogaspareto/documents/vscode/NutriAI/image.png"), 0)

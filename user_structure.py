@@ -1,14 +1,15 @@
-from dataclasses import dataclass, asdict, field
 import re
+import pytz
 from typing import List
 from datetime import datetime
-import pytz
-from collections import defaultdict
-from  word2number import w2n
-from contextlib import suppress
-import nltk
 from unidecode import unidecode
+from contextlib import suppress
+from dataclasses import dataclass, asdict, field
+
+import nltk
 import dacite
+import pandas as pd
+from word2number import w2n
 from fuzzywuzzy import process, fuzz
 
 nltk.download('stopwords')
@@ -273,27 +274,46 @@ def normalize_quantity(quantity: str):
         return float(split_quantity[0]) * unit_words[split_quantity[1]]
     
 
-def create_food_from_text(text: str, df):
-    food_quantities, food_names = split_text(text)
-    normalized_quantities = [normalize_quantity(quantity) for quantity in food_quantities]
-    foods = []
-    for food_name, quantity in zip(food_names, normalized_quantities):
-        food = find_food_in_df(food_name, df)
-        if not food:
-            continue
-        obj_food = Food(
-            name=food['nome_do_alimento'],
-            number=food['id'],
-            group=food['categoria'],
-            quantity=quantity,
-            kcal=str(food['calorias']).replace(",", "."),
-            protein=str(food['proteinas']).replace(",", "."),
-            carbs=str(food['carboidratos']).replace(",", "."),
-            fat=str(food['gorduras']).replace(",", "."),
-            fiber=str(food['fibras']).replace(",", ".")
-        )
-        obj_food.normalize_quantity()
-        foods.append(obj_food)
+def create_food_from_text(text: str = None, df: pd.DataFrame = None, food_list: List[dict] = None):
+    if not df.empty:
+        food_quantities, food_names = split_text(text)
+        normalized_quantities = [normalize_quantity(quantity) for quantity in food_quantities]
+        foods = []
+        for food_name, quantity in zip(food_names, normalized_quantities):
+        
+            food = find_food_in_df(food_name, df)
+            if not food:
+                continue
+            obj_food = Food(
+                name=food['nome_do_alimento'],
+                number=food['id'],
+                group=food['categoria'],
+                quantity=quantity,
+                kcal=str(food['calorias']).replace(",", "."),
+                protein=str(food['proteinas']).replace(",", "."),
+                carbs=str(food['carboidratos']).replace(",", "."),
+                fat=str(food['gorduras']).replace(",", "."),
+                fiber=str(food['fibras']).replace(",", ".")
+            )
+            obj_food.normalize_quantity()
+            foods.append(obj_food)
+    elif food_list:
+        for food in food_list:
+            obj_food = Food(
+                name=food['nome_do_alimento'],
+                number=-1,
+                group="LLM",
+                quantity=food['quantity'],
+                kcal=food['calorias'],
+                protein=food['proteinas'],
+                carbs=food['carboidratos'],
+                fat=food['gorduras'],
+                fiber=food['fibras']
+            )
+            obj_food.normalize_quantity()
+            foods.append(obj_food)
+            
+        foods = [Food(**food) for food in food_list]
     return foods
 
 

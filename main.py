@@ -7,10 +7,11 @@ from telegram.ext import filters, MessageHandler, ApplicationBuilder, CommandHan
 from io import BytesIO
 import requests
 
+import config
 from user_structure import User
 from database import get_user_session
 from user_register import make_register
-from client_output import add_food, transcribe_audio, delete_last_food, generate_gif
+from client_output import add_food, add_food_from_image, transcribe_audio, delete_last_food, generate_gif
 from project_logger import log_message
 
 # Enable logging
@@ -99,11 +100,23 @@ async def get_voice(update: Update, context: CallbackContext):
 
     await context.bot.send_message(chat_id=update.effective_chat.id, text=text_to_send)
     
+    
+async def get_image(update: Update, context: CallbackContext):
+    """Handle the image message."""
+    user_id = update.message.from_user.id
+    new_file = await context.bot.get_file(update.message.photo[-1].file_id)
+    file_path = new_file.file_path
+    downloaded_file = requests.get(file_path).content
+    bio = BytesIO(downloaded_file)
+    text_to_send = add_food_from_image(image=bio, user_id=user_id)
+    log_message(update, text_to_send, "image")
+    await context.bot.send_message(chat_id=update.effective_chat.id, text=text_to_send)
+    
 
 if __name__ == '__main__':
 
 
-    application = ApplicationBuilder().token(os.environ.get("TELEGRAM_TOKEN")).build()
+    application = ApplicationBuilder().token(config.TELEGRAM_TOKEN).build()
     
     add_food_handler = MessageHandler(filters.TEXT & (~filters.COMMAND), register_food)
     help_handler = CommandHandler('help', help)
@@ -114,10 +127,12 @@ if __name__ == '__main__':
     # add message handler without blocks others handlers
     # message_handler = MessageHandler(filters.TEXT & (~filters.COMMAND), log_message, block=False)
     voice_handler = MessageHandler(filters.VOICE, get_voice)
+    image_handler = MessageHandler(filters.PHOTO, get_image)
     register_handler = make_register()
     
     # application.add_handler(message_handler)
     application.add_handler(voice_handler)
+    application.add_handler(image_handler)
     application.add_handler(help_handler)
     application.add_handler(delete_food_handler)
     application.add_handler(get_diet_handler)
