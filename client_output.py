@@ -47,7 +47,8 @@ def add_food_from_image(image: BytesIO, user_id):
         food_text = normalize_llm_text(food_text)
         food_text = user_interaction_for_add_quantity(food_text)
         
-        foods = create_food_from_text(text=food_text, df=df)
+        # foods = create_food_from_text(text=food_text, df=df)
+        foods = create_food_from_gpt(text=food_text)
         if not foods:
             text = "Alimento não encontrado!"
             return text
