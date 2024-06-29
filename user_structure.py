@@ -12,6 +12,10 @@ import pandas as pd
 from word2number import w2n
 from fuzzywuzzy import process, fuzz
 
+from gpt_langchain import PydanticGPT, GPTFood
+from database import set_food_session, get_food_session
+
+gpt = PydanticGPT(service_provider="google", pydantic_object=GPTFood, response_type=list)
 nltk.download('stopwords')
 fuso_horario = pytz.timezone('America/Sao_Paulo')
 
@@ -67,7 +71,6 @@ class Food():
                 setattr(self, food, float(getattr(self, food)) * (self.quantity / table_scale))
             except ValueError:
                 setattr(self, food, 0)
-
 
 
 @dataclass
@@ -316,18 +319,67 @@ def create_food_from_text(text: str = None, df: pd.DataFrame = None, food_list: 
         foods = [Food(**food) for food in food_list]
     return foods
 
+def create_food_from_gpt(text: str):
+    prompt = """
+Voce é um especialista em nutrição, que irá me ajudar a descobrir os macronutrientes dos alimentos.
+
+    - Ultilizando a tabela TACO e a tabela de composição de alimentos da USP
+    - Se for necessário, utilize outras fontes confiáveis
+    
+Seguindo as regras a cima, me responda:
+    {question}
+"""
+    
+    food_quantities, food_names = split_text(text)
+    normalized_quantities = [normalize_quantity(quantity) for quantity in food_quantities]
+    foods_text  = ""
+    gpt_quantities = []
+    gpt_foods = []
+    foods = []
+    for idx, food_name in enumerate(food_names):
+        current_food = get_food_session(food_name)
+        if current_food:
+            current_food.quantity = normalized_quantities[idx]
+            current_food.normalize_quantity()
+            foods.append(current_food)
+            continue
+        foods_text += "- Quantas calorias tem em {quantity}g de {name}?\n".format(quantity=100, name=food_name)
+        gpt_quantities.append(normalized_quantities[idx])
+        gpt_foods.append(food_name)
+        
+    if foods_text:
+        food_list = gpt.inference([prompt.format(question=foods_text)])[0]
+        for food, quantity, food_name in zip(food_list, gpt_quantities, gpt_foods):
+            obj_food = Food(
+                name=food_name,
+                number=-1,
+                group="LLM",
+                quantity=quantity,
+                kcal=food['kcal'],
+                protein=food['protein'],
+                carbs=food['carbs'],
+                fat=food['fat'],
+                fiber=food['fiber']
+            )
+            set_food_session(food_name, obj_food)
+            obj_food.normalize_quantity()
+            foods.append(obj_food)
+    return foods
 
 if __name__ == '__main__':
-    import pandas as pd
-    df = pd.read_csv("data/Tacotable.csv")
-    text = "200g de banana nanica"
-    foods = create_food_from_text(text, df)
-    print(foods)
-    user = User(user_id="123", name="John")
-    user.create_diet()
-    user.update_last_diet(foods)
-    print(user.get_last_diet())
-    print(user.to_dict())
+    # import pandas as pd
+    # df = pd.read_csv("data/Tacotable.csv")
+    # text = "200g de banana nanica"
+    # foods = create_food_from_text(text, df)
+    # print(foods)
+    # user = User(user_id="123", name="John")
+    # user.create_diet()
+    # user.update_last_diet(foods)
+    # print(user.get_last_diet())
+    # print(user.to_dict())
+    
+    print(create_food_from_gpt("200g de banana nanica e 350g de peito de frango frito"))
+    print()
     
 
     

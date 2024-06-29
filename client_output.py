@@ -1,4 +1,4 @@
-from user_structure import User, create_food_from_text
+from user_structure import User, create_food_from_text, create_food_from_gpt
 from database import get_user_session, set_user_session
 import pandas as pd
 import speech_recognition as sr
@@ -72,7 +72,8 @@ def add_food(user_text, user_id):
         return text
         
                 
-    foods = create_food_from_text(user_text, df)
+    # foods = create_food_from_text(user_text, df)
+    foods = create_food_from_gpt(user_text)
     if not foods:
         text = "Alimento não encontrado!"
         return text

@@ -16,7 +16,7 @@ def retry_request(func):
     return wrapper
 
 class LLMInference:
-    def __init__(self, model_temperature: float = config.MODEL_TEMPERATURE):
+    def __init__(self, model_temperature: float = config.GPT_TEMPERATURE):
         self.api_key = config.GEMINI_API_KEY
         genai.configure(api_key=self.api_key)
         self.model_basic = genai.GenerativeModel('gemini-1.0-pro-latest')
@@ -52,4 +52,7 @@ class LLMInference:
         response = self.chat.send_message(text)
         return response.text
 
-    
+if __name__ == "__main__":
+    llm = LLMInference()
+    resp = llm.generate_content("quantas calorias tem em 200g de ovo cozido?")
+    print(resp)
