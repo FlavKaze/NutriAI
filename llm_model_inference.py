@@ -20,7 +20,7 @@ class LLMInference:
         self.api_key = config.GEMINI_API_KEY
         genai.configure(api_key=self.api_key)
         self.model_basic = genai.GenerativeModel('gemini-1.0-pro-latest')
-        self.model_vision = genai.GenerativeModel('gemini-1.0-pro-vision-latest')
+        self.model_vision = genai.GenerativeModel('gemini-1.5-flash')
         self.model_chat = genai.GenerativeModel('gemini-1.0-pro-latest')
         self.chat = None
         self.generation_config = genai.types.GenerationConfig(
