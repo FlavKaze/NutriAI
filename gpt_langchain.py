@@ -144,18 +144,39 @@ class GPTFood(BaseModel):
     fiber: float = Field(description="Food fiber")
     
     
+    
+class GPTRH(BaseModel):
+    explicacao_simplificada: str = Field(description="Explicação simplificada dos campos")
+    explicacao_detalhada: str = Field(description="Explicação detalhada dos campos")
+    sugestao_de_melhoria: str = Field(description="Sugestão de melhoria para melhorar os numeros")
+ 
 if __name__ == '__main__':
     prompt = """
-Voce é um especialista em nutrição, que irá me ajudar a descobrir os macronutrientes dos alimentos.
+Voce é um especialista em Recursos Humanos e foi contratado para ajudar a 
+    empresa a explicar os campos a baixo para o usuario do sistema de RH.
 
-    - Ultilizando a tabela TACO e a tabela de composição de alimentos da USP
-    - Se for necessário, utilize outras fontes confiáveis
+Com base no seu conhecimento e experiência, explique o que são os campos a baixo:
+
+Mapa Estratégico
+
+Metas Corporativas 60%
+    Lucro operacional
+    Volume de vendas
+
+Metas Departamentais 80%
+    Industrial
+    Vendas
+
+Metas Individuais 90%
+    Mariza Cristina
+    Airton Duarte
     
-Seguindo as regras a cima, me responda:
-    Quantas calorias tem em {quantity}g de {name}?
 """
     
-    gpt = PydanticGPT(service_provider="google", pydantic_object=Food)
+    gpt = PydanticGPT(service_provider="openai", pydantic_object=GPTRH)
     print(gpt.inference([
-        prompt.format(name="ovo cozido", quantity=100),
+        prompt,
     ])[0])
+
+# {'explicacao_simplificada': 'Os campos referem-se a diferentes níveis de metas dentro de uma organização: estratégicas, corporativas, departamentais e individuais.', 'explicacao_detalhada': "O 'Mapa Estratégico' é uma ferramenta que ajuda a visualizar e comunicar a estratégia da empresa, mostrando como diferentes objetivos se conectam. 'Metas Corporativas 60%' refere-se a objetivos gerais da empresa, como 'Lucro operacional' e 'Volume de vendas', que têm um peso de 60% na avaliação geral. 'Metas Departamentais 80%' são objetivos específicos para cada departamento, como 'Industrial' e 'Vendas', com um peso de 80%. 'Metas Individuais 90%' são objetivos específicos para cada funcionário, como 'Mariza Cristina' e 'Airton Duarte', com um peso de 90%.", 'sugestao_de_melhoria': 'Para melhorar a compreensão, poderia-se incluir uma breve descrição de como cada meta contribui para o sucesso geral da empresa e exemplos de ações que podem ser tomadas para alcançá-las. Além disso, seria útil explicar como os pesos percentuais influenciam a avaliação de desempenho.'}
+# {'explicacao_simplificada': 'O Mapa Estratégico é uma ferramenta que ajuda a empresa a alinhar suas atividades com sua visão e estratégia. As Metas Corporativas são objetivos gerais que a empresa quer alcançar, como aumentar o lucro operacional e o volume de vendas. As Metas Departamentais são objetivos específicos para cada departamento, como o setor Industrial e de Vendas. As Metas Individuais são objetivos específicos para cada funcionário, como Mariza Cristina e Airton Duarte.', 'explicacao_detalhada': 'O Mapa Estratégico é um diagrama que representa a estratégia da empresa, mostrando como diferentes objetivos e iniciativas estão interligados para alcançar a visão da organização. As Metas Corporativas, que têm um peso de 60%, são objetivos amplos que a empresa como um todo deve atingir, como aumentar o lucro operacional e o volume de vendas. As Metas Departamentais, com um peso de 80%, são objetivos específicos para cada departamento, como o setor Industrial e de Vendas, que contribuem para as metas corporativas. As Metas Individuais, com um peso de 90%, são objetivos específicos para cada colaborador, como Mariza Cristina e Airton Duarte, que devem ser alcançados para apoiar as metas departamentais e corporativas.', 'sugestao_de_melhoria': 'Para melhorar os números, a empresa pode considerar a implementação de um sistema de acompanhamento de metas mais robusto, que permita monitorar o progresso em tempo real e ajustar as estratégias conforme necessário. Além disso, promover treinamentos e workshops para os funcionários pode ajudar a alinhar todos com os objetivos estratégicos e aumentar o engajamento e a produtividade.'}
