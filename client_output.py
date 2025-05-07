@@ -1,4 +1,4 @@
-from user_structure import User, create_food_from_text, create_food_from_gpt
+from user_structure import User, create_food_from_text, create_food_from_gpt, conversation_with_gpt
 from database import get_user_session, set_user_session
 import pandas as pd
 import speech_recognition as sr
@@ -76,7 +76,8 @@ def add_food(user_text, user_id):
     # foods = create_food_from_text(user_text, df)
     foods = create_food_from_gpt(user_text)
     if not foods:
-        text = "Alimento não encontrado!"
+        # text = "Alimento não encontrado!"
+        text = conversation_with_gpt(user_text)
         return text
     
     user.update_last_diet(foods)
@@ -159,7 +160,52 @@ def generate_chart(label, meta, atual) -> None:
     fig_bytes = BytesIO()
     plt.savefig(fig_bytes, dpi=300, bbox_inches='tight', pad_inches=0.5, transparent=False)
     return fig_bytes
+   
+def get_diet_images(user: User):
+    image_array = []
+    labels = ['kcal', 'protain', 'carbs', 'fat', 'fiber']
+    metas = [user.daily_kcal, user.daily_protein, user.daily_carbs, user.daily_fat, user.daily_fiber]
+    atuais = [user.all_diet[-1].kcal, user.all_diet[-1].protein, user.all_diet[-1].carbs, user.all_diet[-1].fat, user.all_diet[-1].fiber]
     
+    for label, meta, atual in zip(labels, metas, atuais):
+        fig_bytes = generate_chart(label, meta, atual)
+        fig_bytes.seek(0)
+        image_array.append(fig_bytes)
+    
+    # Concatenate all images into a single image
+    if image_array:
+        # Determine the grid dimensions based on number of images
+        num_images = len(image_array)
+        cols = min(3, num_images)  # Max 3 columns
+        rows = (num_images + cols - 1) // cols  # Calculate needed rows
+        
+        # Open all images
+        pil_images = []
+        for img_bytes in image_array:
+            img_bytes.seek(0)
+            pil_images.append(Image.open(img_bytes))
+        
+        # Get max dimensions for each cell in the grid
+        max_width = max(img.width for img in pil_images)
+        max_height = max(img.height for img in pil_images)
+        
+        # Create a new image with the grid
+        result_width = max_width * cols
+        result_height = max_height * rows
+        result_img = Image.new('RGB', (result_width, result_height), (255, 255, 255))
+        
+        # Paste all images into the grid
+        for i, img in enumerate(pil_images):
+            row = i // cols
+            col = i % cols
+            result_img.paste(img, (col * max_width, row * max_height))
+        
+        # Convert the result image to bytes
+        combined_bytes = BytesIO()
+        result_img.save(combined_bytes, format='PNG')
+        combined_bytes.seek(0)
+        image_array.append(combined_bytes)  # Add the combined image to the array
+    return [combined_bytes] 
 
 def generate_gif(user: User):
     image_array = []

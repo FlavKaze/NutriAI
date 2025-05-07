@@ -1,5 +1,4 @@
-import os
-from json import dumps
+import httpx
 
 import logging
 from telegram import Update, ReplyKeyboardRemove
@@ -11,7 +10,7 @@ import config
 from user_structure import User
 from database import get_user_session
 from user_register import make_register
-from client_output import add_food, add_food_from_image, transcribe_audio, delete_last_food, generate_gif
+from client_output import add_food, add_food_from_image, transcribe_audio, delete_last_food, generate_gif, get_diet_images
 from project_logger import log_message
 
 # Enable logging
@@ -80,8 +79,11 @@ async def get_diet(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(chat_id=update.effective_chat.id, text=str(last_diet))
         await context.bot.send_message(chat_id=update.effective_chat.id, text=user.get_daily_values())
         await context.bot.send_message(chat_id=update.effective_chat.id, text="Calculando macronutrientes...")
-        temp_file = generate_gif(user)
-        await context.bot.send_animation(chat_id=update.effective_chat.id, animation=temp_file, filename='pie_chart.gif')
+        # temp_file = generate_gif(user)
+        images = get_diet_images(user)
+        for image in images:
+            await context.bot.send_photo(chat_id=update.effective_chat.id, photo=image)
+        # await context.bot.send_animation(chat_id=update.effective_chat.id, animation=temp_file, filename='pie_chart.gif')
     else:
         text_to_send = "Usuário não encontrado! Por favor, registre-se com o comando /register."
         await context.bot.send_message(chat_id=update.effective_chat.id, text=text_to_send)
@@ -92,7 +94,9 @@ async def get_voice(update: Update, context: CallbackContext):
     user_id = update.message.from_user.id
     new_file = await context.bot.get_file(update.message.voice.file_id)
     file_path = new_file.file_path
-    downloaded_file = requests.get(file_path).content
+    async with httpx.AsyncClient() as client:
+        response = await client.get(file_path)
+        downloaded_file = response.content
     bio = BytesIO(downloaded_file)
     user_text = transcribe_audio(bio)
     text_to_send = add_food(user_text, user_id)
