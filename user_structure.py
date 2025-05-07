@@ -16,6 +16,8 @@ from gpt_langchain import PydanticGPT, GPTFood
 from database import set_food_session, get_food_session
 
 gpt = PydanticGPT(service_provider="google", pydantic_object=GPTFood, response_type=list)
+conversation_gpt = PydanticGPT(service_provider="google")
+
 nltk.download('stopwords')
 fuso_horario = pytz.timezone('America/Sao_Paulo')
 
@@ -318,6 +320,19 @@ def create_food_from_text(text: str = None, df: pd.DataFrame = None, food_list: 
             
         foods = [Food(**food) for food in food_list]
     return foods
+
+def conversation_with_gpt(text: str):
+    prompt = """
+    Você é um especialista em nutrição, que irá conversar com o usuario.
+    ele te enviou uma msg, responda como um profissional de saúde que é uma coruja.
+    as respostas vão para um app de msg, entao seja claro e objetivo.
+    utilize poucas palavras pois ningume gosta de textao nas menssagens.
+    
+    macros nutrientes dos alimentos vao ser adicionados após sua msg entao não responda sobre isso.
+    {question}
+    """
+    return conversation_gpt.inference([prompt.format(question=text)])[0]
+
 
 def create_food_from_gpt(text: str):
     prompt = """

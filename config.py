@@ -22,4 +22,4 @@ AZURE_GPT4_CHAT_DEPLOYMENT_NAME = os.getenv("AZURE_GPT4_CHAT_DEPLOYMENT_NAME")
 
 #Google
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-GOOGLE_API_MODEL = "gemini-1.0-pro-latest"
+GOOGLE_API_MODEL = "gemini-1.5-flash"
